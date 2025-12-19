@@ -1,0 +1,53 @@
+version: 2.1
+
+jobs:
+  lint:
+    docker:
+      - image: cimg/python:3.13.11
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "requirements.txt" }}
+            - v1-deps-
+      - run:
+          name: Install dependencies
+          command: pip install -r requirements.txt
+      - save_cache:
+          paths:
+            - ~/.cache/pip
+          key: v1-deps-{{ checksum "requirements.txt" }}
+      - run:
+          name: Run linter
+          command: flake8 .
+
+  test:
+    docker:
+      - image: cimg/python:3.13.11
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-deps-{{ checksum "requirements.txt" }}
+            - v1-deps-
+      - run:
+          name: Install depenencies
+          command: pip install -r requirements.txt
+      - run:
+          name: Create test-results directory
+          command: mkdir -p test-results
+      - run:
+          name: Run tests
+          command: pytest
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+
+workflows:
+  build_and_test:
+    jobs:
+      - lint
+      - test:
+          requires:
+            - lint
